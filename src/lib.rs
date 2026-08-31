@@ -3,7 +3,7 @@
 pub mod scrape;
 
 use scrape::api::Product;
-use scrape::data::Data;
+use scrape::data;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,7 +43,7 @@ pub enum Store {
 
 impl From<Product> for Book {
     fn from(product: Product) -> Self {
-        let data = Data::parse(&product.short_description);
+        let data = data::Data::parse(&product.short_description);
         let term = |taxonomy: &str| {
             product
                 .attributes
@@ -67,7 +67,7 @@ impl From<Product> for Book {
         Self {
             id: product.id,
             sku: product.sku,
-            title: product.name,
+            title: data::plain_text(&product.name),
             permalink: product.permalink,
             author: data.author,
             publisher: data.publisher,

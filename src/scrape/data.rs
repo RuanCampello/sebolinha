@@ -59,3 +59,32 @@ impl Data {
         data
     }
 }
+
+/// turn a piece of provided rendered html into plain text
+pub(crate) fn plain_text(rendered: &str) -> String {
+    Html::parse_fragment(rendered)
+        .root_element()
+        .text()
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::plain_text;
+
+    #[test]
+    fn decodes_html_character_references() {
+        assert_eq!(
+            plain_text("Que E Energia Nuclear, O &#8211; Colecao &amp; Guia"),
+            "Que E Energia Nuclear, O – Colecao & Guia"
+        );
+    }
+
+    #[test]
+    fn leaves_unicode_text_unchanged() {
+        assert_eq!(
+            plain_text("O príncipe – Maquiavel"),
+            "O príncipe – Maquiavel"
+        );
+    }
+}
