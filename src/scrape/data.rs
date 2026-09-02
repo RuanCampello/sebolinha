@@ -3,7 +3,7 @@
 //! The API returns author, publisher, ISBN and friends only as markup, so this
 //! is the one place left that touches HTML
 
-use scraper::{Html, Selector};
+use scraper::{Html, Node, Selector};
 use std::sync::LazyLock;
 
 static LI: LazyLock<Selector> = LazyLock::new(|| Selector::parse("li").unwrap());
@@ -68,9 +68,40 @@ pub(crate) fn plain_text(rendered: &str) -> String {
         .collect()
 }
 
+/// strip presentation markup from a product description and normalise its whitespace
+pub(crate) fn description_text(rendered: &str) -> Option<String> {
+    let html = Html::parse_fragment(rendered);
+    let mut text = String::new();
+
+    for node in html.root_element().descendants() {
+        match node.value() {
+            Node::Text(value) => text.push_str(value),
+            Node::Element(element)
+                if matches!(
+                    element.name(),
+                    "p" | "br" | "div" | "li" | "blockquote" | "h1" | "h2" | "h3" | "h4"
+                ) =>
+            {
+                text.push(' ');
+            }
+            _ => {}
+        }
+    }
+
+    let mut normalized = String::new();
+    for word in text.split_whitespace() {
+        if !normalized.is_empty() {
+            normalized.push(' ');
+        }
+        normalized.push_str(word);
+    }
+
+    (!normalized.is_empty()).then_some(normalized)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::plain_text;
+    use super::{description_text, plain_text};
 
     #[test]
     fn decodes_html_character_references() {
@@ -86,5 +117,26 @@ mod tests {
             plain_text("O príncipe – Maquiavel"),
             "O príncipe – Maquiavel"
         );
+    }
+
+    #[test]
+    fn turns_html_descriptions_into_normalized_plain_text() {
+        assert_eq!(
+            description_text(
+                "<p>In this profound &amp; playful book, the world&#8217;s earliest \
+                 &#8211; and most memorable ideas appear.</p>\n\
+                 <p>Then a <strong>second paragraph</strong>.</p>"
+            ),
+            Some(
+                "In this profound & playful book, the world’s earliest – and most memorable ideas \
+                 appear. Then a second paragraph."
+                    .into()
+            )
+        );
+    }
+
+    #[test]
+    fn empty_html_description_becomes_none() {
+        assert_eq!(description_text("<p> &nbsp; </p>"), None);
     }
 }

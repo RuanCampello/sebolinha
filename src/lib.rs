@@ -1,5 +1,6 @@
 //! Book data from the catalog
 
+pub mod db;
 pub mod scrape;
 
 use scrape::api::Product;
@@ -62,7 +63,7 @@ impl From<Product> for Book {
             .iter()
             .find_map(|t| Store::from_str(&t.slug).ok());
         let categories = product.categories.into_iter().map(|c| c.name).collect();
-        let description = (!product.description.is_empty()).then_some(product.description);
+        let description = data::description_text(&product.description);
 
         Self {
             id: product.id,
@@ -102,5 +103,15 @@ impl FromStr for Store {
             "loja-manaira" => Self::Manaira,
             _ => return Err(()),
         })
+    }
+}
+
+impl Store {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Centro => "centro",
+            Self::Bancarios => "bancarios",
+            Self::Manaira => "manaira",
+        }
     }
 }

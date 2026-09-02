@@ -35,7 +35,7 @@ impl Scraper {
     const USER_AGENT: &str = "sebolinha/0.1";
 
     const ATTEMPTS: u32 = 3;
-    const MAX: usize = 1 << 8;
+    const MAX: usize = 1 << 24;
     const PER_PAGE: usize = 100;
     const CONCURRENCY: usize = 6;
 
